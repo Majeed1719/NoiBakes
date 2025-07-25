@@ -53,9 +53,13 @@
 
     document.getElementById("userForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      userData.name = e.target.name.value;
-      userData.phone = e.target.phone.value;
+      userData.name = e.target.name.value.trim();
+      userData.phone = e.target.phone.value.trim();
 
+      // Disable empty inputs
+      if (!userData.name || !userData.phone) return;
+
+      // Hide form, show gift box
       document.getElementById("formSection").style.display = "none";
       document.getElementById("giftSection").style.display = "block";
     });
@@ -63,12 +67,12 @@
     function openGift() {
       if (couponDrawn) return;
 
+      // 🎯 Random draw logic
       const chance = Math.random();
       let chosen;
-
       if (chance < 0.15) {
         chosen = { type: "15% OFF", prefix: "NBX15" };
-      } else if (chance < 0.60) {
+      } else if (chance < 0.575) {
         chosen = { type: "10% OFF", prefix: "NBX10" };
       } else {
         chosen = { type: "Better Luck Next Time", prefix: "NBTX" };
@@ -82,7 +86,7 @@
       document.getElementById("couponResult").innerText = resultText;
       couponDrawn = true;
 
-      // Send to Google Sheet
+      // Send to Google Sheet via POST (CORS-safe version must match your backend)
       fetch("https://script.google.com/macros/s/AKfycbyqAjJWavkB0hdbUU5mpXdRjJR_OBmqF1rz_fl_pTeT6NV1C5tpOQKBZxJfmLvnb8AJ-g/exec", {
         method: "POST",
         body: JSON.stringify({
@@ -91,17 +95,19 @@
           couponType: chosen.type,
           serial: serial
         }),
-        headers: { "Content-Type": "application/json" }
-      }).then(res => res.text())
-        .then(response => {
-          if (response === "Duplicate") {
-            document.getElementById("giftSection").style.display = "none";
-            document.getElementById("formSection").style.display = "block";
-            document.getElementById("errorMsg").innerText = "You have already claimed your coupon!";
-          }
-        }).catch(err => {
-          alert("Error submitting your coupon!");
-        });
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then(res => res.text())
+      .then(response => {
+        if (response === "Duplicate") {
+          document.getElementById("giftSection").style.display = "none";
+          document.getElementById("formSection").style.display = "block";
+          document.getElementById("errorMsg").innerText = "⚠️ You have already claimed your coupon!";
+        }
+      })
+      .catch(() => alert("⚠️ Error submitting your coupon!"));
     }
   </script>
 </body>
